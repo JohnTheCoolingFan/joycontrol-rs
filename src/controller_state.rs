@@ -1,4 +1,4 @@
-use crate::{button_state::ButtonState, controller::Controller};
+use crate::{button_state::ButtonState, controller::Controller, memory::FlashMemory};
 
 #[derive(Debug)]
 pub struct ControllerState {
