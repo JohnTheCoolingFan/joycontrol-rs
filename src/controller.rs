@@ -9,14 +9,17 @@ pub enum Controller {
     ProController = 0x03,
 }
 
-impl ToString for Controller {
-    fn to_string(&self) -> String {
-        match self {
-            Self::JoyconL => "Joy-Con (L)",
-            Self::JoyconR => "Joy-Con (R)",
-            Self::ProController => "Pro Controller",
-        }
-        .into()
+impl Display for Controller {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::JoyconL => "Joy-Con (L)",
+                Self::JoyconR => "Joy-Con (R)",
+                Self::ProController => "Pro Controller",
+            }
+        )
     }
 }
 
