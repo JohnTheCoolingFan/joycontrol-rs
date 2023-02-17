@@ -7,7 +7,7 @@ use uuid::{uuid, Uuid};
 const HID_UUID: Uuid = uuid!("00001124-0000-1000-8000-00805f9b34fb");
 
 struct HidDevice {
-    device_id: BDAddr, //TODO In original code its use Bluez DeviceID https://docs.rs/bluez-async/latest/bluez_async/struct.DeviceId.html i don't know how clone it
+    device_id: BDAddr, //TODO In original code it uses Bluez DeviceID https://docs.rs/bluez-async/latest/bluez_async/struct.DeviceId.html and I don't know how to clone it
 }
 
 impl HidDevice {
