@@ -2,9 +2,9 @@ use crate::{button_state::ButtonState, controller::Controller, mcu::NFCTag, memo
 
 #[derive(Debug)]
 pub struct ControllerState {
-    protocol: ControllerProtocol, // TODO: find out type
+    protocol: ControllerProtocol,
     controller: Controller,
-    nfc_content: Option<NFCTag>, // TODO: find out type
+    nfc_content: Option<NFCTag>,
     spi_flash: Option<FlashMemory>,
     button_state: ButtonState,
 }
