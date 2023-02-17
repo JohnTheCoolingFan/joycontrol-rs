@@ -26,7 +26,7 @@ impl NFCTag {
     }
 }
 
-// TODO: maybe needs a variation with custom number? I dunno
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NFCTagType {
     Amiibo,
