@@ -90,6 +90,23 @@ impl ButtonState {
         }
     }
 
+
+    /* Utility func to set buttons in the input report
+     * https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering/blob/master/bluetooth_hid_notes.md
+    ┌─────┬──────┬─────┬────────┬────────┬─────┬────────┬───┬────┐
+    │Byte │ 0    │ 1   │ 2      │ 3      │ 4   │ 5      │ 6 │ 7  │
+    ├─────┼──────┼─────┼────────┼────────┼─────┼────────┼───┼────┤
+    │     │      │     │        │        │     │        │   │    │
+    │   1 │ Y    │ X   │ B      │ A      │ SR  │ SL     │ R │ ZR │
+    ├─────┼──────┼─────┼────────┼────────┼─────┼────────┼───┼────┤
+    │     │      │     │        │        │     │        │   │    │
+    │   2 │ Minus│ Plus│ R_Stick│ L_Stick│ Home│ Capture│   │    │
+    ├─────┼──────┼─────┼────────┼────────┼─────┼────────┼───┼────┤
+    │     │      │     │        │        │     │        │   │    │
+    │   3 │ Down │ Up  │ Right  │ Left   │ SR  │ SL     │ L │ ZL │
+    └─────┴──────┴─────┴────────┴────────┴─────┴────────┴───┴────┘
+     */
+
     pub fn as_bytes(&self) -> [u8; 3] {
         let mut result = [0, 0, 0];
         match self.controller {
