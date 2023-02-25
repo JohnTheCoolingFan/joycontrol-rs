@@ -31,7 +31,7 @@ impl ControllerProtocol {
     ) -> Result<Self, SizeMismatch> {
         Ok(Self {
             controller,
-            spi_flash,
+            spi_flash: spi_flash.clone(),
             is_pairing: !reconnect.unwrap_or(false),
             controller_state: ControllerState::new(controller, spi_flash),
         })
