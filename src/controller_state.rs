@@ -13,10 +13,10 @@ pub struct ControllerState {
     controller: Controller,
     nfc_content: Option<NFCTag>,
     spi_flash: Option<FlashMemory>,
-    button_state: ButtonState,
-    l_stick_state: Option<StickState>,
-    r_stick_state: Option<StickState>,
-    sig_is_send: Arc<ManualResetEvent>,
+    pub button_state: ButtonState,
+    pub l_stick_state: Option<StickState>,
+    pub r_stick_state: Option<StickState>,
+    pub sig_is_send: Arc<ManualResetEvent>,
 }
 
 impl ControllerState {
@@ -84,5 +84,13 @@ impl ControllerState {
 
     pub fn get_nfc(&self) -> Option<&NFCTag> {
         self.nfc_content.as_ref()
+    }
+
+    pub async fn send(&self) {
+        todo!()
+    }
+
+    pub async fn connect(&self) {
+        todo!()
     }
 }
