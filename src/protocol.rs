@@ -3,6 +3,18 @@ use crate::{
     controller_state::ControllerState,
     memory::{FlashMemory, SizeMismatch},
 };
+use hashbrown::HashMap;
+use lazy_static::lazy_static;
+use std::iter::FromIterator;
+
+lazy_static! {
+    pub static ref DELAY_MAP: HashMap<u8, f32> = HashMap::from_iter(vec![
+        (0x3F, 1.0),
+        (0x21, f32::INFINITY),
+        (0x30, 1.0 / 60.0),
+        (0x31, 1.0 / 60.0)
+    ]);
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SwitchState {
