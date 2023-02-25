@@ -1,13 +1,14 @@
+use std::sync::Arc;
+
+use rsevents::{EventState, ManualResetEvent};
+
 use crate::{
     button_state::ButtonState, controller::Controller, memory::FlashMemory, nfc_tag::NFCTag,
     stick_calibration::StickCalibration, stick_state::StickState,
 };
 
 // Protocol is ignored for now because that causes cyclic referencing or self-referencing, which is
-// hard  and there is probably a better way to do what the original code does
-//
-// sig_is_send omitted for now as it's unclear how it is used, alternative will be found later
-#[derive(Debug)]
+// hard and there is probably a better way to do what the original code does
 pub struct ControllerState {
     controller: Controller,
     nfc_content: Option<NFCTag>,
@@ -15,6 +16,7 @@ pub struct ControllerState {
     button_state: ButtonState,
     l_stick_state: Option<StickState>,
     r_stick_state: Option<StickState>,
+    sig_is_send: Arc<ManualResetEvent>,
 }
 
 impl ControllerState {
@@ -64,6 +66,23 @@ impl ControllerState {
             button_state,
             l_stick_state,
             r_stick_state,
+            sig_is_send: Arc::new(ManualResetEvent::new(EventState::Unset)),
         }
+    }
+
+    pub fn get_controller(&self) -> Controller {
+        self.controller
+    }
+
+    pub fn get_flash_memory(&self) -> Option<&FlashMemory> {
+        self.spi_flash.as_ref()
+    }
+
+    pub fn set_nfc(&mut self, data: NFCTag) {
+        self.nfc_content = Some(data)
+    }
+
+    pub fn get_nfc(&self) -> Option<&NFCTag> {
+        self.nfc_content.as_ref()
     }
 }
