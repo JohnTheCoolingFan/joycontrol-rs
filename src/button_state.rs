@@ -1,9 +1,9 @@
-use std::{fmt::Display, iter::repeat};
+use std::{iter::repeat, time::Duration};
 
 use hashbrown::HashMap;
 use thiserror::Error;
 
-use crate::controller::Controller;
+use crate::{controller::Controller, controller_state::ControllerState};
 
 #[derive(Debug, Clone)]
 pub struct ButtonState {
@@ -47,19 +47,25 @@ impl ButtonState {
         }
     }
 
-    pub fn set_button(&mut self, button: &str, pushed: bool) -> Result<(), ButtonNotAvailable> {
+    pub fn set_button(&mut self, button: &str, pushed: bool) -> Result<(), ButtonStateError> {
         let button = button.to_lowercase();
         if !self.button_available(&button) {
-            return Err(ButtonNotAvailable(button, self.controller));
+            return Err(ButtonStateError::ButtonNotAvailable(
+                button,
+                self.controller,
+            ));
         }
         self.button_states.insert(button, pushed);
         Ok(())
     }
 
-    pub fn get_button(&self, button: &str) -> Result<bool, ButtonNotAvailable> {
+    pub fn get_button(&self, button: &str) -> Result<bool, ButtonStateError> {
         let button = button.to_lowercase();
         if !self.button_available(&button) {
-            return Err(ButtonNotAvailable(button, self.controller));
+            return Err(ButtonStateError::ButtonNotAvailable(
+                button,
+                self.controller,
+            ));
         }
         Ok(*self.button_states.get(&button).unwrap())
     }
@@ -190,15 +196,59 @@ impl ButtonState {
     }
 }
 
-#[derive(Debug, Clone, Error)]
-pub struct ButtonNotAvailable(String, Controller);
+pub async fn button_press(
+    controller_state: &mut ControllerState,
+    buttons: &[&str],
+) -> Result<(), ButtonStateError> {
+    if buttons.is_empty() {
+        Err(ButtonStateError::NoButtonsGiven)
+    } else {
+        let button_state = &mut controller_state.button_state;
 
-impl Display for ButtonNotAvailable {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Given button \"{}\" is not available to {}.",
-            self.0, self.1
-        )
+        for button in buttons {
+            button_state.set_button(button, true)?;
+        }
+
+        controller_state.send().await;
+
+        Ok(())
     }
+}
+
+pub async fn button_release(
+    controller_state: &mut ControllerState,
+    buttons: &[&str],
+) -> Result<(), ButtonStateError> {
+    if buttons.is_empty() {
+        Err(ButtonStateError::NoButtonsGiven)
+    } else {
+        let button_state = &mut controller_state.button_state;
+
+        for button in buttons {
+            button_state.set_button(button, false)?;
+        }
+
+        controller_state.send().await;
+
+        Ok(())
+    }
+}
+
+pub async fn button_push(
+    controller_state: &mut ControllerState,
+    buttons: &[&str],
+    sec: Option<f32>,
+) -> Result<(), ButtonStateError> {
+    button_press(controller_state, buttons).await?;
+    tokio::time::sleep(Duration::from_secs_f32(sec.unwrap_or(0.1))).await;
+    button_release(controller_state, buttons).await?;
+    Ok(())
+}
+
+#[derive(Debug, Clone, Error)]
+pub enum ButtonStateError {
+    #[error("No buttons were given.")]
+    NoButtonsGiven,
+    #[error("Given button \"{0}\" is not available to {1}.")]
+    ButtonNotAvailable(String, Controller),
 }
