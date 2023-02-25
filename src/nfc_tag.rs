@@ -1,4 +1,6 @@
 use log::{info, warn};
+use std::error::Error;
+use tokio::{fs::File, io::AsyncReadExt};
 
 // TODO: other method impls
 #[derive(Debug, Clone)]
@@ -24,8 +26,25 @@ impl NFCTag {
             source,
         }
     }
-}
 
+    pub async fn load_amiibo(source: &str) -> Result<Self, Box<dyn Error + Send + Sync>> {
+        let mut reader = File::open(source).await?;
+        let mut buf = vec![];
+        reader.read_to_end(&mut buf).await;
+        Ok(Self::new(
+            &buf,
+            Some(NFCTagType::Amiibo),
+            Some(source.into()),
+        ))
+    }
+
+    pub fn get_uid(&self) -> [u8; 6] {
+        [&self.data[0..3], &self.data[4..8]]
+            .concat()
+            .try_into()
+            .unwrap()
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NFCTagType {
