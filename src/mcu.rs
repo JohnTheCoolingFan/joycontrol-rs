@@ -1,6 +1,7 @@
+use bytes::Bytes;
 use crc::{Crc, CRC_8_SMBUS};
 use lazy_static::lazy_static;
-use log::warn;
+use log::{error, info, warn};
 use uuid::Uuid;
 
 use crate::{controller_state::ControllerState, nfc_tag::NFCTag};
@@ -209,6 +210,42 @@ impl MicroControllerUnit {
                 None,
                 None,
             )
+        }
+    }
+
+    pub fn process_nfc_write(&mut self, command: &[u8]) {
+        info!("MCU: Processing NFC write");
+        let nfc_tag = self.controller.get_nfc_mut();
+        if let Some(nfc_tag) = nfc_tag {
+            if command[1] == 0x07 {
+                if command[2..9] != nfc_tag.get_uid() {
+                    error!(
+                        "self.nfc_tag.uid and target uid aren't equal, are {:#x} and {:#x}",
+                        Bytes::copy_from_slice(&nfc_tag.get_uid()),
+                        Bytes::copy_from_slice(&command[2..9])
+                    )
+                }
+                // nfc_tag.create_backup();
+                nfc_tag.data[16..20].copy_from_slice(&command[13..17]);
+                let mut i = 22;
+                while i + 1 < command.len() {
+                    let addr = command[i] as usize * 4;
+                    let leng = command[i + 1];
+                    let data = &command[(i + 2)..(i + 2 + leng as usize)];
+                    if addr == 0 || leng == 0 {
+                        break;
+                    }
+                    nfc_tag.write(addr, data);
+                    i += 2 + leng as usize;
+                }
+                if let Err(why) = nfc_tag.save() {
+                    warn!("Error during saving amiibo: {}", why);
+                }
+            } else {
+                error!("UID length is {} (not 7), aborting", command[1]);
+            }
+        } else {
+            error!("nfc_tag is None, couldn't write");
         }
     }
 }
