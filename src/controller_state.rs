@@ -1,5 +1,6 @@
 use crate::{
     button_state::ButtonState, controller::Controller, memory::FlashMemory, nfc_tag::NFCTag,
+    stick_state::StickState,
 };
 
 #[derive(Debug)]
