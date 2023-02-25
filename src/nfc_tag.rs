@@ -1,6 +1,10 @@
 use bytes::Bytes;
 use log::{error, info, warn};
-use std::error::Error;
+use std::{
+    error::Error,
+    fs,
+    io::{self, Write},
+};
 use tokio::{fs::File, io::AsyncReadExt};
 
 // TODO: other method impls
@@ -56,6 +60,17 @@ impl NFCTag {
             );
         }
         self.data[idx..(idx + data.len())].copy_from_slice(data);
+    }
+
+    pub fn save(&mut self) -> Result<(), io::Error> {
+        if let Some(source) = &self.source {
+            let mut writer = fs::File::open(source)?;
+            writer.write_all(&self.data)?;
+            info!("Saved altered amiibo as {}", source);
+        } else {
+            warn!("No save path provided, ignoring save call");
+        }
+        Ok(())
     }
 }
 
