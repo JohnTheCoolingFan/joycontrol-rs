@@ -11,7 +11,6 @@ pub enum SwitchState {
     AwaitingMaxSlots,
 }
 
-#[derive(Debug)]
 pub struct ControllerProtocol {
     controller: Controller,
     controller_state: ControllerState,
