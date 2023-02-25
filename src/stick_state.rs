@@ -2,14 +2,21 @@ use std::fmt::Display;
 
 use thiserror::Error;
 
+use crate::stick_calibration::StickCalibration;
+
 #[derive(Debug, Clone)]
 pub struct StickState {
     h_stick: u32,
     v_stick: u32,
+    calibration: Option<StickCalibration>,
 }
 
 impl StickState {
-    pub fn new(h: Option<u32>, v: Option<u32>) -> Result<Self, InvalidStickValues> {
+    pub fn new(
+        h: Option<u32>,
+        v: Option<u32>,
+        calibration: Option<StickCalibration>,
+    ) -> Result<Self, InvalidStickValues> {
         let h = h.unwrap_or(0);
         let v = v.unwrap_or(0);
 
@@ -24,6 +31,7 @@ impl StickState {
         Ok(Self {
             h_stick: h,
             v_stick: v,
+            calibration,
         })
     }
 }
