@@ -90,7 +90,6 @@ impl ButtonState {
         }
     }
 
-
     /* Utility func to set buttons in the input report
      * https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering/blob/master/bluetooth_hid_notes.md
     ┌─────┬──────┬─────┬────────┬────────┬─────┬────────┬───┬────┐
@@ -199,8 +198,7 @@ impl Display for ButtonNotAvailable {
         write!(
             f,
             "Given button \"{}\" is not available to {}.",
-            self.0,
-            self.1.to_string()
+            self.0, self.1
         )
     }
 }
