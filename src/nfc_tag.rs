@@ -1,11 +1,12 @@
-use log::{info, warn};
+use bytes::Bytes;
+use log::{error, info, warn};
 use std::error::Error;
 use tokio::{fs::File, io::AsyncReadExt};
 
 // TODO: other method impls
 #[derive(Debug, Clone)]
 pub struct NFCTag {
-    data: Vec<u8>,
+    pub data: Vec<u8>,
     tag_type: NFCTagType,
     source: Option<String>,
 }
@@ -43,6 +44,18 @@ impl NFCTag {
             .concat()
             .try_into()
             .unwrap()
+    }
+
+    pub fn write(&mut self, idx: usize, data: &[u8]) {
+        if idx > self.data.len() || idx + data.len() > self.data.len() {
+            error!(
+                "Some index error {}, {:x} {}",
+                idx,
+                Bytes::copy_from_slice(data),
+                data.len()
+            );
+        }
+        self.data[idx..(idx + data.len())].copy_from_slice(data);
     }
 }
 
