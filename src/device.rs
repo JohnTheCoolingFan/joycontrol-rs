@@ -16,7 +16,7 @@ impl HidDevice {
 
         // get the first bluetooth adapter
         let adapters = manager.adapters().await?;
-        let central = adapters.into_iter().nth(0).unwrap();
+        let central = adapters.into_iter().next().unwrap();
         todo!()
     }
 }
