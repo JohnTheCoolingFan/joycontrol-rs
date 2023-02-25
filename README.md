@@ -4,7 +4,7 @@
 
 
 ## joycontrol-rs
-Emulate Nintendo Switch Controllers over Bluetooth Rust-lang realization.
+Emulate Nintendo Switch Controllers over Bluetooth, Rust-lang realization.
 
 
 ## Thanks
