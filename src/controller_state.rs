@@ -3,6 +3,8 @@ use crate::{
     stick_state::StickState,
 };
 
+// Protocol is ignored for now because that causes cyclic referencing or self-referencing, which is
+// hard  and there is probably a better way to do what the original code does
 #[derive(Debug)]
 pub struct ControllerState {
     controller: Controller,
