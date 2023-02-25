@@ -86,6 +86,10 @@ impl ControllerState {
         self.nfc_content.as_ref()
     }
 
+    pub fn get_nfc_mut(&mut self) -> Option<&mut NFCTag> {
+        self.nfc_content.as_mut()
+    }
+
     pub async fn send(&self) {
         todo!()
     }
