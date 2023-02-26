@@ -70,6 +70,7 @@ impl ButtonState {
         Ok(*self.button_states.get(&button).unwrap())
     }
 
+    #[inline]
     fn button_available(&self, button: &str) -> bool {
         match self.controller {
             Controller::JoyconL => Self::JOYCON_L_AVAILABLE_BUTTONS.contains(&button),
@@ -78,6 +79,7 @@ impl ButtonState {
         }
     }
 
+    #[inline]
     pub fn get_available_buttons(&self) -> &[&'static str] {
         match self.controller {
             Controller::JoyconL => &Self::JOYCON_L_AVAILABLE_BUTTONS,
@@ -86,6 +88,7 @@ impl ButtonState {
         }
     }
 
+    #[inline]
     pub fn clear(&mut self) {
         self.button_states.iter_mut().for_each(|(_, v)| *v = false)
     }

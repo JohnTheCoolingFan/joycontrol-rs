@@ -40,6 +40,7 @@ impl StickState {
         }
     }
 
+    #[inline]
     pub fn get_h(&self) -> u32 {
         self.h_stick
     }
@@ -53,6 +54,7 @@ impl StickState {
         }
     }
 
+    #[inline]
     pub fn get_v(&self) -> u32 {
         self.v_stick
     }
@@ -118,14 +120,17 @@ impl StickState {
         }
     }
 
+    #[inline]
     pub fn set_calibration(&mut self, calibration: StickCalibration) {
         self.calibration = Some(calibration)
     }
 
+    #[inline]
     pub fn get_calibration(&self) -> Result<&StickCalibration, NoCalibrationDataAvailable> {
         self.calibration.as_ref().ok_or(NoCalibrationDataAvailable)
     }
 
+    #[inline]
     pub fn as_bytes(&self) -> [u8; 3] {
         let byte_0 = self.h_stick as u8;
         let byte_1 = ((self.v_stick as u8) & 0xF) << 4;

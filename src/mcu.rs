@@ -92,6 +92,7 @@ impl MicroControllerUnit {
         }
     }
 
+    #[inline]
     fn flush_response_queue(&mut self) {
         self.response_queue = vec![]
     }

@@ -64,6 +64,7 @@ impl FlashMemory {
 impl Deref for FlashMemory {
     type Target = Vec<u8>;
 
+    #[inline]
     fn deref(&self) -> &Self::Target {
         &self.data
     }

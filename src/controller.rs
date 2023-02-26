@@ -26,6 +26,7 @@ impl Display for Controller {
 impl FromStr for Controller {
     type Err = UnknownController;
 
+    #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "JOYCON_R" => Ok(Self::JoyconR),

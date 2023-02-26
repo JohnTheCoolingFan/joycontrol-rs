@@ -70,22 +70,27 @@ impl ControllerState {
         }
     }
 
+    #[inline]
     pub fn get_controller(&self) -> Controller {
         self.controller
     }
 
+    #[inline]
     pub fn get_flash_memory(&self) -> Option<&FlashMemory> {
         self.spi_flash.as_ref()
     }
 
+    #[inline]
     pub fn set_nfc(&mut self, data: NFCTag) {
         self.nfc_content = Some(data)
     }
 
+    #[inline]
     pub fn get_nfc(&self) -> Option<&NFCTag> {
         self.nfc_content.as_ref()
     }
 
+    #[inline]
     pub fn get_nfc_mut(&mut self) -> Option<&mut NFCTag> {
         self.nfc_content.as_mut()
     }
