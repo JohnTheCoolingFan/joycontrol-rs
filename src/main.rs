@@ -1,4 +1,5 @@
 mod button_state;
+mod cli;
 mod controller;
 mod controller_state;
 mod device;
