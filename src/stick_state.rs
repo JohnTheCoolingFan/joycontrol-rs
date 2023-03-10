@@ -1,8 +1,23 @@
 use std::fmt::Display;
 
+use strum::EnumString;
 use thiserror::Error;
 
 use crate::stick_calibration::StickCalibration;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumString)]
+#[strum(serialize_all = "snake_case")]
+pub enum StickDirection {
+    Center,
+    Up,
+    Down,
+    Left,
+    Right,
+    #[strum(to_string = "v")]
+    Vertical,
+    #[strum(to_string = "h")]
+    Horizontal,
+}
 
 #[derive(Debug, Clone)]
 pub struct StickState {
