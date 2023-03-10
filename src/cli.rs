@@ -1,10 +1,10 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, future::Future, pin::Pin};
 
 use hashbrown::HashMap;
 use tokio::sync::mpsc::{channel, Receiver};
 
 pub struct Command {
-    function: fn(&[&str]) -> String,
+    function: Box<dyn Fn(&[&str]) -> Pin<Box<dyn Future<Output = String>>>>,
     doc: Option<String>,
 }
 
@@ -30,7 +30,12 @@ impl CliBase {
         }
     }
 
-    pub fn add_command(&mut self, name: &str, command: fn(&[&str]) -> String, doc: Option<&str>) {
+    pub fn add_command(
+        &mut self,
+        name: &str,
+        command: Box<dyn Fn(&[&str]) -> Pin<Box<dyn Future<Output = String>>>>,
+        doc: Option<&str>,
+    ) {
         if !self.commands.contains_key(name) {
             self.commands.insert(
                 name.into(),
@@ -61,6 +66,7 @@ impl CliBase {
                     println!(
                         "{}",
                         (command.function)(&args.iter().map(String::as_str).collect::<Vec<&str>>())
+                            .await
                     );
                 } else {
                     println!("command {} not found, call help for help.", cmd);
