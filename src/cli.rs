@@ -58,6 +58,25 @@ impl CliBase {
         self.rx.recv().await.unwrap()
     }
 
+    /// Reimplement if other behavior is needed
+    /// Implementing this as a regular command isn't possible because it requires access to &self
+    /// for iterating over the commands.
+    async fn help(&self) {
+        println!("Commands:");
+        for (name, Command { function: _, doc }) in &self.commands {
+            print!("{}", name);
+            if let Some(docstr) = doc {
+                println!(": {}", docstr);
+            } else {
+                println!("");
+            }
+        }
+        println!("Commands can be chained using \"&&\"");
+        println!("Type \"exit\" to close.");
+    }
+
+    /// Reimplement if other behavior is needed
+    /// For example, custom help command
     async fn run(&mut self) {
         'inputloop: loop {
             let user_input = self.read_input_line().await;
@@ -68,14 +87,20 @@ impl CliBase {
                 if cmd == "exit" {
                     break 'inputloop;
                 }
-                if let Some(command) = self.commands.get(&cmd) {
-                    println!(
-                        "{}",
-                        (command.function)(&args.iter().map(String::as_str).collect::<Vec<&str>>())
-                            .await
-                    );
+                if cmd == "help" {
+                    self.help().await;
                 } else {
-                    println!("command {} not found, call help for help.", cmd);
+                    if let Some(command) = self.commands.get(&cmd) {
+                        println!(
+                            "{}",
+                            (command.function)(
+                                &args.iter().map(String::as_str).collect::<Vec<&str>>()
+                            )
+                            .await
+                        );
+                    } else {
+                        println!("command {} not found, call help for help.", cmd);
+                    }
                 }
             }
         }
