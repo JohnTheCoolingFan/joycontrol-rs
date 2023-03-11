@@ -1,3 +1,5 @@
+use log4rs::init_file;
+
 mod button_state;
 mod cli;
 mod controller;
@@ -11,5 +13,6 @@ mod stick_calibration;
 mod stick_state;
 
 fn main() {
+    init_file("log_config.yaml", Default::default()).unwrap();
     println!("Hello, world!");
 }

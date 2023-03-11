@@ -1,0 +1,8 @@
+kind: console
+
+target: stdout
+
+tty_only: false
+
+encoder:
+  kind: pattern
