@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, future::Future, pin::Pin};
+use std::{future::Future, pin::Pin};
 
 use hashbrown::HashMap;
 use tokio::sync::mpsc::{channel, Receiver};
