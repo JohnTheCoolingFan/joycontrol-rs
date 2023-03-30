@@ -129,6 +129,14 @@ impl CliBaseBuilder {
         self
     }
 
+    pub fn change_help(
+        mut self,
+        command: Box<dyn Fn(&CliBase) -> Pin<Box<dyn Future<Output = ()> + '_>>>,
+    ) -> Self {
+        self.help_command = command;
+        self
+    }
+
     pub fn build(self) -> CliBase {
         let (tx, rx) = channel(32); // I don't know what number will work the best
         let stdin = std::io::stdin();
