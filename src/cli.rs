@@ -8,12 +8,6 @@ use crate::{
     stick_state::{InvalidStickValue, StickDirection, StickState},
 };
 
-macro_rules! wrap_command {
-    ($func_expr:path) => {
-        Box::new(|args| Box::pin($func_expr(args)))
-    };
-}
-
 pub struct Command {
     function: Box<dyn Fn(&[&str]) -> Pin<Box<dyn Future<Output = String>>>>,
     doc: Option<String>,
@@ -27,7 +21,7 @@ pub struct CliBase {
 }
 
 impl CliBase {
-    pub fn add_command(
+    fn add_command(
         &mut self,
         name: &str,
         command: Box<dyn Fn(&[&str]) -> Pin<Box<dyn Future<Output = String>>>>,
@@ -68,7 +62,7 @@ impl CliBase {
 
     /// Reimplement if other behavior is needed
     /// For example, custom help command
-    async fn run(&mut self) {
+    pub async fn run(&mut self) {
         'inputloop: loop {
             let user_input = self.read_input_line().await;
 
@@ -111,17 +105,17 @@ impl CliBaseBuilder {
         }
     }
 
-    pub fn add_command(
+    pub fn add_command<F: Future<Output = String>>(
         mut self,
         name: String,
         doc: Option<String>,
-        command: Box<dyn Fn(&[&str]) -> Pin<Box<dyn Future<Output = String>>>>,
+        command: &dyn Fn(&[&str]) -> F,
     ) -> Self {
         if !self.commands.contains_key(&name) {
             self.commands.insert(
                 name,
                 Command {
-                    function: command,
+                    function: Box::new(|args| Box::pin(command(args))),
                     doc,
                 },
             );
@@ -129,11 +123,8 @@ impl CliBaseBuilder {
         self
     }
 
-    pub fn change_help(
-        mut self,
-        command: Box<dyn Fn(&CliBase) -> Pin<Box<dyn Future<Output = ()> + '_>>>,
-    ) -> Self {
-        self.help_command = command;
+    pub fn change_help<F: Future<Output = ()>>(mut self, command: &dyn Fn(&CliBase) -> F) -> Self {
+        self.help_command = Box::new(|cli| Box::pin(command(cli)));
         self
     }
 
@@ -157,16 +148,24 @@ impl CliBaseBuilder {
 
 pub struct ControllerCli<'a> {
     cli: CliBase,
-    pub controller_state: &'a ControllerState,
+    pub controller_state: &'a mut ControllerState,
 }
 
 impl<'a> ControllerCli<'a> {
-    pub fn new(controller_state: &'a ControllerState) -> Self {
+    pub fn new(controller_state: &'a mut ControllerState) -> Self {
         let cli = CliBaseBuilder::new().build();
         Self {
             cli,
             controller_state,
         }
+    }
+
+    async fn cmd_stick(args: &[&str]) -> String {
+        let mut args_iter = args.iter();
+        let side = args_iter.next().unwrap();
+        let direction = args_iter.next().unwrap();
+        let value = args_iter.next();
+        todo!()
     }
 
     /// `value` is only used for StickDirection::{Horizontal, Vertical}, so you can set it to any
