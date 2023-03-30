@@ -16,26 +16,11 @@ pub struct Command {
 // TODO: help command
 pub struct CliBase {
     commands: HashMap<String, Command>,
+    help_command: Box<dyn Fn(&Self) -> Pin<Box<dyn Future<Output = ()>>>>,
     rx: Receiver<String>,
 }
 
 impl CliBase {
-    pub fn new() -> Self {
-        let (tx, rx) = channel(32); // I don't know what number will work the best
-        let stdin = std::io::stdin();
-        tokio::spawn(async move {
-            loop {
-                let mut buf = String::new();
-                stdin.read_line(&mut buf).unwrap();
-                tx.send(buf).await.unwrap();
-            }
-        });
-        Self {
-            commands: HashMap::default(),
-            rx,
-        }
-    }
-
     pub fn add_command(
         &mut self,
         name: &str,
@@ -61,7 +46,7 @@ impl CliBase {
     /// Reimplement if other behavior is needed
     /// Implementing this as a regular command isn't possible because it requires access to &self
     /// for iterating over the commands.
-    async fn help(&self) {
+    async fn default_help(&self) {
         println!("Commands:");
         for (name, Command { function: _, doc }) in &self.commands {
             print!("{}", name);
@@ -88,7 +73,7 @@ impl CliBase {
                     break 'inputloop;
                 }
                 if cmd == "help" {
-                    self.help().await;
+                    self.default_help().await;
                 } else {
                     if let Some(command) = self.commands.get(&cmd) {
                         println!(
@@ -107,6 +92,44 @@ impl CliBase {
     }
 }
 
+pub struct CliBaseBuilder {
+    commands: HashMap<String, Command>,
+    help_command: Box<dyn Fn(&CliBase) -> Pin<Box<dyn Future<Output = ()> + 'static>>>,
+}
+
+impl CliBaseBuilder {
+    pub fn new() -> Self {
+        Self {
+            commands: HashMap::default(),
+            help_command: Box::new(|x| Self::wrapper(x, CliBase::default_help)),
+        }
+    }
+
+    fn wrapper<F: Future<Output = ()> + 'static>(
+        cli_base: &CliBase,
+        f: impl Fn(&CliBase) -> F,
+    ) -> Pin<Box<dyn Future<Output = ()>>> {
+        Box::pin(f(cli_base))
+    }
+
+    pub fn build(self) -> CliBase {
+        let (tx, rx) = channel(32); // I don't know what number will work the best
+        let stdin = std::io::stdin();
+        tokio::spawn(async move {
+            loop {
+                let mut buf = String::new();
+                stdin.read_line(&mut buf).unwrap();
+                tx.send(buf).await.unwrap();
+            }
+        });
+        CliBase {
+            commands: self.commands,
+            help_command: self.help_command,
+            rx,
+        }
+    }
+}
+
 pub struct ControllerCli<'a> {
     cli: CliBase,
     pub controller_state: &'a ControllerState,
@@ -114,7 +137,7 @@ pub struct ControllerCli<'a> {
 
 impl<'a> ControllerCli<'a> {
     pub fn new(controller_state: &'a ControllerState) -> Self {
-        let cli = CliBase::new();
+        let cli = CliBaseBuilder::new().build();
         Self {
             cli,
             controller_state,
