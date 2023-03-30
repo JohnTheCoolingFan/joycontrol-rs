@@ -8,6 +8,12 @@ use crate::{
     stick_state::{InvalidStickValue, StickDirection, StickState},
 };
 
+macro_rules! wrap_command {
+    ($func_expr:path) => {
+        Box::new(|args| Box::pin($func_expr(args)))
+    };
+}
+
 pub struct Command {
     function: Box<dyn Fn(&[&str]) -> Pin<Box<dyn Future<Output = String>>>>,
     doc: Option<String>,
@@ -16,7 +22,7 @@ pub struct Command {
 // TODO: help command
 pub struct CliBase {
     commands: HashMap<String, Command>,
-    help_command: Box<dyn Fn(&Self) -> Pin<Box<dyn Future<Output = ()>>>>,
+    help_command: Box<dyn Fn(&Self) -> Pin<Box<dyn Future<Output = ()> + '_>>>,
     rx: Receiver<String>,
 }
 
@@ -94,22 +100,33 @@ impl CliBase {
 
 pub struct CliBaseBuilder {
     commands: HashMap<String, Command>,
-    help_command: Box<dyn Fn(&CliBase) -> Pin<Box<dyn Future<Output = ()> + 'static>>>,
+    help_command: Box<dyn Fn(&CliBase) -> Pin<Box<dyn Future<Output = ()> + '_>>>,
 }
 
 impl CliBaseBuilder {
     pub fn new() -> Self {
         Self {
             commands: HashMap::default(),
-            help_command: Box::new(|x| Self::wrapper(x, CliBase::default_help)),
+            help_command: Box::new(|cli| Box::pin(cli.default_help())),
         }
     }
 
-    fn wrapper<F: Future<Output = ()> + 'static>(
-        cli_base: &CliBase,
-        f: impl Fn(&CliBase) -> F,
-    ) -> Pin<Box<dyn Future<Output = ()>>> {
-        Box::pin(f(cli_base))
+    pub fn add_command(
+        mut self,
+        name: String,
+        doc: Option<String>,
+        command: Box<dyn Fn(&[&str]) -> Pin<Box<dyn Future<Output = String>>>>,
+    ) -> Self {
+        if !self.commands.contains_key(&name) {
+            self.commands.insert(
+                name,
+                Command {
+                    function: command,
+                    doc,
+                },
+            );
+        }
+        self
     }
 
     pub fn build(self) -> CliBase {
