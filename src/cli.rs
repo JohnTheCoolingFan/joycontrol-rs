@@ -9,7 +9,7 @@ use crate::{
 };
 
 pub struct Command {
-    function: Box<dyn Fn(&[&str]) -> Pin<Box<dyn Future<Output = String>>>>,
+    function: Box<dyn FnMut(&[&str]) -> Pin<Box<dyn Future<Output = String>>>>,
     doc: Option<String>,
 }
 
@@ -54,7 +54,7 @@ impl ControllerCli {
     fn add_command(
         &mut self,
         name: &str,
-        command: Box<dyn Fn(&[&str]) -> Pin<Box<dyn Future<Output = String>>>>,
+        command: Box<dyn FnMut(&[&str]) -> Pin<Box<dyn Future<Output = String>>>>,
         doc: Option<&str>,
     ) {
         if !self.commands.contains_key(name) {
@@ -111,7 +111,7 @@ impl ControllerCli {
                 if cmd == "help" {
                     self.regular_help().await;
                 } else {
-                    if let Some(command) = self.commands.get(&cmd) {
+                    if let Some(command) = self.commands.get_mut(&cmd) {
                         println!(
                             "{}",
                             (command.function)(
@@ -127,7 +127,10 @@ impl ControllerCli {
         }
     }
 
-    async fn cmd_stick(controller_state: &mut ControllerState, args: &[&str]) -> String {
+    async fn cmd_stick<'a, 'b>(
+        controller_state: &'a mut ControllerState,
+        args: &'b [&str],
+    ) -> String {
         let mut args_iter = args.iter();
         let side = args_iter.next().unwrap();
         let direction = args_iter.next().unwrap();
