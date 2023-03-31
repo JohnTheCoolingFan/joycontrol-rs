@@ -14,13 +14,43 @@ pub struct Command {
 }
 
 // TODO: help command
-pub struct CliBase {
+pub struct ControllerCli {
     commands: HashMap<String, Command>,
-    help_command: Box<dyn Fn(&Self) -> Pin<Box<dyn Future<Output = ()> + '_>>>,
     rx: Receiver<String>,
+    available_buttons: String,
 }
 
-impl CliBase {
+impl ControllerCli {
+    pub fn new(controller_state: &mut ControllerState) -> Self {
+        let (tx, rx) = channel(32); // I don't know what number will work the best
+        let stdin = std::io::stdin();
+        tokio::spawn(async move {
+            loop {
+                let mut buf = String::new();
+                stdin.read_line(&mut buf).unwrap();
+                tx.send(buf).await.unwrap();
+            }
+        });
+        let mut result = Self {
+            commands: HashMap::default(),
+            rx,
+            available_buttons: itertools::join(
+                controller_state.button_state.get_available_buttons().iter(),
+                ", ",
+            ),
+        };
+        result.add_command(
+            "stick",
+            Box::new(|args| Box::pin(Self::cmd_stick(controller_state, args))),
+            Some("stick - command to set stick positions\n\
+            :param side: 'l', 'left' for left control stick; 'r', 'right' for right control stick\n\
+            :param direction: 'center', 'up', 'down', 'left', 'right';\n\
+                              'h', 'horizontal' or 'v', 'vertical' to set the value directly to the \"value\" argument\n\
+            :param value: horizontal or vertical value"),
+        );
+        result
+    }
+
     fn add_command(
         &mut self,
         name: &str,
@@ -43,10 +73,9 @@ impl CliBase {
         self.rx.recv().await.unwrap()
     }
 
-    /// Reimplement if other behavior is needed
     /// Implementing this as a regular command isn't possible because it requires access to &self
     /// for iterating over the commands.
-    async fn default_help(&self) {
+    async fn regular_help(&self) {
         println!("Commands:");
         for (name, Command { function: _, doc }) in &self.commands {
             print!("{}", name);
@@ -58,6 +87,13 @@ impl CliBase {
         }
         println!("Commands can be chained using \"&&\"");
         println!("Type \"exit\" to close.");
+    }
+
+    async fn help(&self) {
+        println!("Button commands:");
+        println!("{}", self.available_buttons);
+        println!("");
+        self.regular_help().await;
     }
 
     /// Reimplement if other behavior is needed
@@ -73,7 +109,7 @@ impl CliBase {
                     break 'inputloop;
                 }
                 if cmd == "help" {
-                    self.default_help().await;
+                    self.regular_help().await;
                 } else {
                     if let Some(command) = self.commands.get(&cmd) {
                         println!(
@@ -90,82 +126,21 @@ impl CliBase {
             }
         }
     }
-}
 
-pub struct CliBaseBuilder {
-    commands: HashMap<String, Command>,
-    help_command: Box<dyn Fn(&CliBase) -> Pin<Box<dyn Future<Output = ()> + '_>>>,
-}
-
-impl CliBaseBuilder {
-    pub fn new() -> Self {
-        Self {
-            commands: HashMap::default(),
-            help_command: Box::new(|cli| Box::pin(cli.default_help())),
-        }
-    }
-
-    pub fn add_command<F: Future<Output = String>>(
-        mut self,
-        name: String,
-        doc: Option<String>,
-        command: &dyn Fn(&[&str]) -> F,
-    ) -> Self {
-        if !self.commands.contains_key(&name) {
-            self.commands.insert(
-                name,
-                Command {
-                    function: Box::new(|args| Box::pin(command(args))),
-                    doc,
-                },
-            );
-        }
-        self
-    }
-
-    pub fn change_help<F: Future<Output = ()>>(mut self, command: &dyn Fn(&CliBase) -> F) -> Self {
-        self.help_command = Box::new(|cli| Box::pin(command(cli)));
-        self
-    }
-
-    pub fn build(self) -> CliBase {
-        let (tx, rx) = channel(32); // I don't know what number will work the best
-        let stdin = std::io::stdin();
-        tokio::spawn(async move {
-            loop {
-                let mut buf = String::new();
-                stdin.read_line(&mut buf).unwrap();
-                tx.send(buf).await.unwrap();
-            }
-        });
-        CliBase {
-            commands: self.commands,
-            help_command: self.help_command,
-            rx,
-        }
-    }
-}
-
-pub struct ControllerCli<'a> {
-    cli: CliBase,
-    pub controller_state: &'a mut ControllerState,
-}
-
-impl<'a> ControllerCli<'a> {
-    pub fn new(controller_state: &'a mut ControllerState) -> Self {
-        let cli = CliBaseBuilder::new().build();
-        Self {
-            cli,
-            controller_state,
-        }
-    }
-
-    async fn cmd_stick(args: &[&str]) -> String {
+    async fn cmd_stick(controller_state: &mut ControllerState, args: &[&str]) -> String {
         let mut args_iter = args.iter();
         let side = args_iter.next().unwrap();
         let direction = args_iter.next().unwrap();
         let value = args_iter.next();
-        todo!()
+        if *side == "l" || *side == "left" {
+            let stick = controller_state.l_stick_state.as_mut().unwrap();
+            Self::set_stick(stick, direction.parse().unwrap(), value.copied()).unwrap()
+        } else if *side == "r" || *side == "right" {
+            let stick = controller_state.r_stick_state.as_mut().unwrap();
+            Self::set_stick(stick, direction.parse().unwrap(), value.copied()).unwrap()
+        } else {
+            panic!("Unexpected argument {}", direction)
+        }
     }
 
     /// `value` is only used for StickDirection::{Horizontal, Vertical}, so you can set it to any
@@ -173,7 +148,7 @@ impl<'a> ControllerCli<'a> {
     fn set_stick(
         stick: &mut StickState,
         direction: StickDirection,
-        value: u32,
+        value: Option<&str>,
     ) -> Result<String, InvalidStickValue> {
         match direction {
             // Not sure if just unwrapping these is a good idea... But I don't want to make yet
@@ -183,8 +158,14 @@ impl<'a> ControllerCli<'a> {
             StickDirection::Down => stick.set_down().unwrap(),
             StickDirection::Left => stick.set_left().unwrap(),
             StickDirection::Right => stick.set_right().unwrap(),
-            StickDirection::Horizontal => stick.set_h(value)?,
-            StickDirection::Vertical => stick.set_v(value)?,
+            StickDirection::Horizontal => {
+                let value = value.expect("Missing value").parse().unwrap();
+                stick.set_h(value)?
+            }
+            StickDirection::Vertical => {
+                let value = value.expect("Missing value").parse().unwrap();
+                stick.set_v(value)?
+            }
         }
         Ok(format!(
             "stick was set to ({}, {})",

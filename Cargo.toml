@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+itertools = "0.10"
 thiserror = "1.0"
 hashbrown = "0.13"
 btleplug = { version = "0.10", features = ["serde"] }
