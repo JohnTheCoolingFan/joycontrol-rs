@@ -15,12 +15,13 @@ const STICK_CMD_DOC: &'static str =
                               'h', 'horizontal' or 'v', 'vertical' to set the value directly to the \"value\" argument\n\
             :param value: horizontal or vertical value";
 
-// TODO: help command
 pub struct ControllerCli<'a> {
     rx: Receiver<String>,
     controller_state: &'a mut ControllerState,
 }
 
+// TODO: other commands, mostly test, from run_controller_cli.py @
+// _register_commands_with_controller_state, line 168
 impl<'a> ControllerCli<'a> {
     pub fn new(controller_state: &'a mut ControllerState) -> Self {
         let (tx, rx) = channel(32); // I don't know what number will work the best
