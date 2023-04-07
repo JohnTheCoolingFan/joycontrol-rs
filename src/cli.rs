@@ -5,23 +5,24 @@ use tokio::sync::mpsc::{channel, Receiver};
 
 use crate::{
     controller_state::ControllerState,
-    stick_state::{InvalidStickValue, StickDirection, StickState},
+    stick_state::{InvalidStickValue, StickDirection, StickState}, button_state::button_push,
 };
 
-pub struct Command {
-    function: Box<dyn FnMut(&[&str]) -> Pin<Box<dyn Future<Output = String>>>>,
-    doc: Option<String>,
-}
+const STICK_CMD_DOC: &'static str = 
+            "stick - command to set stick positions\n\
+            :param side: 'l', 'left' for left control stick; 'r', 'right' for right control stick\n\
+            :param direction: 'center', 'up', 'down', 'left', 'right';\n\
+                              'h', 'horizontal' or 'v', 'vertical' to set the value directly to the \"value\" argument\n\
+            :param value: horizontal or vertical value";
 
 // TODO: help command
-pub struct ControllerCli {
-    commands: HashMap<String, Command>,
+pub struct ControllerCli<'a> {
     rx: Receiver<String>,
-    available_buttons: String,
+    controller_state: &'a mut ControllerState,
 }
 
-impl ControllerCli {
-    pub fn new(controller_state: &mut ControllerState) -> Self {
+impl<'a> ControllerCli<'a> {
+    pub fn new(controller_state: &'a mut ControllerState) -> Self {
         let (tx, rx) = channel(32); // I don't know what number will work the best
         let stdin = std::io::stdin();
         tokio::spawn(async move {
@@ -31,40 +32,9 @@ impl ControllerCli {
                 tx.send(buf).await.unwrap();
             }
         });
-        let mut result = Self {
-            commands: HashMap::default(),
+        Self {
             rx,
-            available_buttons: itertools::join(
-                controller_state.button_state.get_available_buttons().iter(),
-                ", ",
-            ),
-        };
-        result.add_command(
-            "stick",
-            Box::new(|args| Box::pin(Self::cmd_stick(controller_state, args))),
-            Some("stick - command to set stick positions\n\
-            :param side: 'l', 'left' for left control stick; 'r', 'right' for right control stick\n\
-            :param direction: 'center', 'up', 'down', 'left', 'right';\n\
-                              'h', 'horizontal' or 'v', 'vertical' to set the value directly to the \"value\" argument\n\
-            :param value: horizontal or vertical value"),
-        );
-        result
-    }
-
-    fn add_command(
-        &mut self,
-        name: &str,
-        command: Box<dyn FnMut(&[&str]) -> Pin<Box<dyn Future<Output = String>>>>,
-        doc: Option<&str>,
-    ) {
-        if !self.commands.contains_key(name) {
-            self.commands.insert(
-                name.into(),
-                Command {
-                    function: command,
-                    doc: doc.map(Into::into),
-                },
-            );
+            controller_state,
         }
     }
 
@@ -77,21 +47,21 @@ impl ControllerCli {
     /// for iterating over the commands.
     async fn regular_help(&self) {
         println!("Commands:");
-        for (name, Command { function: _, doc }) in &self.commands {
-            print!("{}", name);
-            if let Some(docstr) = doc {
-                println!(": {}", docstr);
-            } else {
-                println!("");
-            }
-        }
+        println!("{}", STICK_CMD_DOC);
         println!("Commands can be chained using \"&&\"");
         println!("Type \"exit\" to close.");
     }
 
     async fn help(&self) {
+        let available_buttons = itertools::join(
+            self.controller_state
+                .button_state
+                .get_available_buttons()
+                .iter(),
+            ", ",
+        );
         println!("Button commands:");
-        println!("{}", self.available_buttons);
+        println!("{}", available_buttons);
         println!("");
         self.regular_help().await;
     }
@@ -99,6 +69,7 @@ impl ControllerCli {
     /// Reimplement if other behavior is needed
     /// For example, custom help command
     pub async fn run(&mut self) {
+        let mut buttons_to_push = Vec::new();
         'inputloop: loop {
             let user_input = self.read_input_line().await;
 
@@ -107,31 +78,31 @@ impl ControllerCli {
                 let cmd = args.remove(0);
                 if cmd == "exit" {
                     break 'inputloop;
-                }
-                if cmd == "help" {
+                } else if cmd == "help" {
                     self.regular_help().await;
+                } else if cmd == "stick" {
+                    Self::cmd_stick(self.controller_state, &args.iter().map(|x| x.as_ref()).collect::<Vec<&str>>()).await;
+                } else if self.controller_state.button_state.get_available_buttons().contains(&cmd.as_ref()) {
+                    buttons_to_push.push(cmd.clone())
                 } else {
-                    if let Some(command) = self.commands.get_mut(&cmd) {
-                        println!(
-                            "{}",
-                            (command.function)(
-                                &args.iter().map(String::as_str).collect::<Vec<&str>>()
-                            )
-                            .await
-                        );
-                    } else {
-                        println!("command {} not found, call help for help.", cmd);
-                    }
+                    println!("command {} not found, call help for help.", cmd);
                 }
             }
+
+            if !buttons_to_push.is_empty() {
+                button_push(self.controller_state, &buttons_to_push, None).await.unwrap();
+            } else {
+                self.controller_state.send().await;
+            }
+            buttons_to_push.clear(); // avoids re-allocation of the vec
         }
     }
 
-    async fn cmd_stick<'a, 'b>(
-        controller_state: &'a mut ControllerState,
-        args: &'b [&str],
+    async fn cmd_stick(
+        controller_state: &mut ControllerState,
+        args: &[&str],
     ) -> String {
-        let mut args_iter = args.iter();
+        let mut args_iter = args.into_iter();
         let side = args_iter.next().unwrap();
         let direction = args_iter.next().unwrap();
         let value = args_iter.next();

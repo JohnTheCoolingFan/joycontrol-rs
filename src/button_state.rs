@@ -201,7 +201,7 @@ impl ButtonState {
 
 pub async fn button_press(
     controller_state: &mut ControllerState,
-    buttons: &[&str],
+    buttons: &[String],
 ) -> Result<(), ButtonStateError> {
     if buttons.is_empty() {
         Err(ButtonStateError::NoButtonsGiven)
@@ -220,7 +220,7 @@ pub async fn button_press(
 
 pub async fn button_release(
     controller_state: &mut ControllerState,
-    buttons: &[&str],
+    buttons: &[String],
 ) -> Result<(), ButtonStateError> {
     if buttons.is_empty() {
         Err(ButtonStateError::NoButtonsGiven)
@@ -239,7 +239,7 @@ pub async fn button_release(
 
 pub async fn button_push(
     controller_state: &mut ControllerState,
-    buttons: &[&str],
+    buttons: &[String],
     sec: Option<f32>,
 ) -> Result<(), ButtonStateError> {
     button_press(controller_state, buttons).await?;
