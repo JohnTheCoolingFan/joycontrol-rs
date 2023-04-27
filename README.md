@@ -1,5 +1,7 @@
 # Rusted Joycon Emulator
 
+Not working yet, in development.
+
 ![fotor_2023-2-18_1_1_31](https://user-images.githubusercontent.com/64846484/219802438-73695df5-f99d-42c9-85f3-99a4695959d7.png)
 
 
