@@ -1,3 +1,4 @@
+use log::info;
 use log4rs::init_file;
 
 mod button_state;
@@ -14,5 +15,6 @@ mod stick_state;
 
 fn main() {
     init_file("log_config.yaml", Default::default()).unwrap();
+    info!("Starting up!");
     println!("Hello, world!");
 }
