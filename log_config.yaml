@@ -1,8 +1,12 @@
-kind: console
-
-target: stdout
-
-tty_only: false
-
-encoder:
-  kind: pattern
+appenders:
+    stdout:
+        kind: console
+        encoder:
+            pattern: "{d(%+)(utc)} [{f}:{L}] {h({l})} {M}: {m}{n}"
+        filters:
+            - kind: threshold
+              level: info
+root:
+    level: info
+    appenders:
+        - stdout
